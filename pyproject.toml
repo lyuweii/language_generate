@@ -1,0 +1,11 @@
+[project]
+name = "language-generate"
+version = "0.1.0"
+description = ""
+readme = "README.md"
+requires-python = ">=3.13"
+authors = [{ name = "lyuweii", email = "wliu@ihep.ac.cn" }]
+dependencies = [
+    "numpy",
+    "igraph",
+]
