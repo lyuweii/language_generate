@@ -130,4 +130,9 @@ class Environment:
         
         self.train()
 
+        # 展示网络
+        agent = random.choice(self.agents)
+        print(f"Agent {agent.name} memory:")
+        agent.show_memory()
+
         #self.agents[0].send_sound(sd.monster_roar)

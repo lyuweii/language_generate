@@ -6,6 +6,7 @@ readme = "README.md"
 requires-python = ">=3.13"
 authors = [{ name = "lyuweii", email = "wliu@ihep.ac.cn" }]
 dependencies = [
-    "numpy",
-    "igraph",
+    "matplotlib>=3.10.1",
+    "numpy>=2.2.4",
+    "python-igraph>=0.11.8",
 ]
