@@ -66,6 +66,8 @@ class Environment:
         rewards = []
         steps = []
         epsilon = 0.1
+        # 首先让所有 agent 接触
+        self.contact_data()
 
         for ep in range(episodes):
             # 随机选一个物品
@@ -82,7 +84,7 @@ class Environment:
                 agent.send_sound(sound)
                 # 检查
                 next_good, next_agent, done, average_reward = self.judge(
-                    agent, good, sound,step)
+                    agent, good, sound, step)
 
                 agent = next_agent
                 good = next_good
@@ -102,29 +104,42 @@ class Environment:
                 )
         return rewards, steps
 
-    def judge(self, agent: Agent, good: int, sound: sd.Sound,step:int):
+    def contact_data(self):
+        """获取接触数据"""
+        for good, agent in zip(self.goods, self.agents):
+            sound = agent.make_rand_sound().data
+            for rv in self.agents:
+                if rv is not agent:
+                    rv.associate(rv.wrap_data(good,f"{good}", good=True),
+                                 rv.wrap_data(sound, sound.name, sound=True))
+
+    def judge(self, agent: Agent, good: int, sound: sd.Sound, step: int):
         flag = False
         # 计算奖励
+        filtered_agents = [rv for rv in self.agents if rv is not agent]
         goods = [
             rv.choose_good(sound) for rv in self.agents if rv is not agent
         ]
+        #print(f"goods: {goods}")
 
         counter = Counter(goods)
         max_count_good = counter.most_common(1)[0][0]
         max_count = counter.most_common(1)[0][1]
 
-        reward = np.clip(20-step, -10, 10)
+        reward = np.clip(5 - step, -15, 10)
         reward += max_count - len(goods) / 2.
-        
+
         next_good = max_count_good
 
         if max_count == len(goods):
             flag = True
 
-        for rv in self.agents:
-            if rv is not agent:
-                # 计算奖励
-                rv.update_qlearning(good, sound, next_good, reward)
+        for rv, selected_good in zip(filtered_agents, goods):
+            if selected_good == max_count_good:
+                setted_reward = reward + len(goods) / 2 + 1
+            else:
+                setted_reward = reward
+            rv.update_qlearning(good, sound, next_good, setted_reward)
 
         next_agent = random.choice([a for a in self.agents if a is not agent])
         next_good = random.choice([g for g in self.goods if g is not good])
