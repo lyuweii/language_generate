@@ -2,6 +2,8 @@ import random
 import numpy as np
 import sound as sd
 from agent import Agent
+import agent as agt
+from collections import Counter
 
 
 class Signal:
@@ -26,7 +28,7 @@ class Environment:
 
     def __init__(self):
         self.size = 100
-        self.agents = []
+        self.agents: list[agt.Agent] = []
         self.goods = [0, 1, 2, 3, 4, 5]
 
     @staticmethod
@@ -59,11 +61,11 @@ class Environment:
     def judge_learn(self, good: int, action: int, sound: sd.Sound):
         pass
 
-    def train(self, episodes: int =500):
+    def train(self, episodes: int = 500):
         """训练Q-learning表"""
         rewards = []
         steps = []
-        epsilon=0.1
+        epsilon = 0.1
 
         for ep in range(episodes):
             # 随机选一个物品
@@ -79,8 +81,8 @@ class Environment:
                 sound = agent.choose_sound(good)
                 agent.send_sound(sound)
                 # 检查
-                next_good, next_agent, done, average_reward,goods= self.judge(
-                    agent, good, sound)
+                next_good, next_agent, done, average_reward = self.judge(
+                    agent, good, sound,step)
 
                 agent = next_agent
                 good = next_good
@@ -100,35 +102,41 @@ class Environment:
                 )
         return rewards, steps
 
-    
-    def judge(self,agent:Agent,good:int,sound: sd.Sound):
+    def judge(self, agent: Agent, good: int, sound: sd.Sound,step:int):
+        flag = False
+        # 计算奖励
+        goods = [
+            rv.choose_good(sound) for rv in self.agents if rv is not agent
+        ]
+
+        counter = Counter(goods)
+        max_count_good = counter.most_common(1)[0][0]
+        max_count = counter.most_common(1)[0][1]
+
+        reward = np.clip(20-step, -10, 10)
+        reward += max_count - len(goods) / 2.
+        
+        next_good = max_count_good
+
+        if max_count == len(goods):
+            flag = True
+
+        for rv in self.agents:
+            if rv is not agent:
+                # 计算奖励
+                rv.update_qlearning(good, sound, next_good, reward)
+
         next_agent = random.choice([a for a in self.agents if a is not agent])
         next_good = random.choice([g for g in self.goods if g is not good])
-        flag=True
-        average_reward = 0
-        goods=[]
-        for rv in self.agents:
-            if rv is agent:
-                continue
-            rv_good = rv.choose_good(sound)
-            if rv_good == good:
-                reward = 10
-            else:
-                reward = -1
-                flag=False
-            goods.append(rv_good)
-            average_reward+=reward
-            rv.update_qlearning(good, sound, next_good, reward)
-        average_reward /= len(self.agents)
-        return next_good, next_agent, flag, average_reward,goods
-            
+
+        return next_good, next_agent, flag, reward
 
     def run(self):
         """运行环境"""
-        for i in range(50):
-            self.add_agent(Agent(self, i,f"H-{i}"))
-        
-        self.train()
+        for i in range(20):
+            self.add_agent(Agent(self, i, f"H-{i}"))
+
+        self.train(2000)
 
         # 展示网络
         agent = random.choice(self.agents)

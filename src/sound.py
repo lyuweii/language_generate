@@ -99,7 +99,7 @@ class Sound:
         self.difficulty = np.sum([phoneme.difficulty for phoneme in Phoneme])
 
     def __repr__(self):
-        return f"Sound({self.name})"
+        return f"{self.name}"
 
 
 # 常用的元音

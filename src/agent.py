@@ -1,14 +1,16 @@
 import random
+from matplotlib import pyplot as plt
 import numpy as np
 import sound as sd
 import igraph as ig
-import matplotlib.pyplot as plt
+from memory import Memory
+from types import SimpleNamespace
 
 
 class Agent:
-    """人类类
+    """代理
     属性：
-        - name: 人类名称
+        - name: 名称
         - env: 环境
         - position: 位置
         - tx_range: 发送范围
@@ -17,10 +19,10 @@ class Agent:
         - reward: 奖励值
         - vowels: 元音列表
         - consonants: 辅音列表
-        - q_table: Q-learning表
         - alpha: 学习率
         - gamma: 折扣因子
-        - epsilon: 探索率"""
+        - epsilon: 探索率
+        - beta: 记忆使用率"""
 
     def __init__(self, env, id: int, name: str = "Agent"):
         """初始化人类"""
@@ -37,15 +39,13 @@ class Agent:
         self.alpha = 0.1  # 学习率
         self.gamma = 0.9  # 折扣因子
         self.epsilon = 0.1  # 探索率
-        self.beta = 0.5  # 记忆使用率
-        self.memory = ig.Graph()  # 记忆图
+        self.beta = 0.9  # 记忆使用率
+        self.memory = Memory()  # 记忆图
 
     def receive_sound(self, sound: sd.Sound):
         """接收信号"""
-        self.sounds.append(sound)
         # 更新记忆
-        self.match_node(sound, sound.name, sound=True)
-        #print(f"{self.name} Received sound: {sound.name}")
+        self.memory.match_node(sound.name, sound, sound=True)
 
     def send_sound(self, sound: sd.Sound):
         """发送信号"""
@@ -53,98 +53,95 @@ class Agent:
         signal = Signal(self, self.position, self.tx_range, sound)
         self.env.broadcast(signal)
 
-    def match_node(self, other, name: str, **kwargs):
-        if len(self.memory.vs) == 0 or not self.memory.vs.select(name_eq=name):
-            node = self.memory.add_vertex(name=name, data=other, **kwargs)
-        else:
-            node = self.memory.vs.select(name_eq=name)[0]
-        return node
-
-    def match_edge(self, node1, node2):
-        """判断两个节点是否连接"""
-        if not self.memory.are_connected(node1.index, node2.index):
-            self.memory.add_edge(node1, node2, weight=np.random.rand())
-        return self.memory.es[self.memory.get_eid(node1.index, node2.index)]
-
-    def max_edge_weight(self, node: ig.Vertex):
-        # 获取所有邻接边的权重
-        edges = self.memory.incident(node)
-        if not edges:
-            return 0
-        max_weight = max([self.memory.es[e]['weight'] for e in edges])
-        return max_weight
-
-    def incident_memory(self, node: ig.Vertex):
-        neighbors = node.neighbors()
-        if not neighbors:
-            return None
-        max_weight = self.max_edge_weight(node)
-        # 获取所有邻接边的权重
-        edges = self.memory.incident(node)
-        weights = [self.memory.es[e]['weight'] for e in edges]
-        # 找到最大权重对应的邻接节点
-        max_weight = max(weights)
-        max_nodes = [
-            neighbors[i] for i, w in enumerate(weights) if w == max_weight
-        ]
-        return random.choice(max_nodes)
-
-    def add_rand_sound_memory(self, node):
+    def make_rand_sound(self):
         constant = self.consonants[random.choice("bpmfd")]
         vowel = self.vowels[random.choice("aeiouü")]
         sound = sd.Sound([constant, vowel])
-        sound_node = self.match_node(sound, sound.name, sound=True)
-        # 接 sound 和 good 在记忆中挂钩
-        self.match_edge(node, sound_node)
-        return sound
+        return SimpleNamespace(name=sound.name, data=sound)
 
-    def add_rand_good_memory(self, node):
+    def make_rand_good(self):
         good = random.choice(self.env.goods)
-        good_node = self.match_node(good, f"{good}")
-        self.match_edge(node, good_node)
-        return good
+        return SimpleNamespace(name=f"{good}", data=good)
+
+    def get_associatian(self, data_name: str, **kwarg):
+        """在记忆中寻找与 data 相关的节点"""
+        data_node = self.memory.match_node(data_name)
+        associated_nodes = self.memory.incident_nodes(data_node).select(
+            **kwarg)
+        if not associated_nodes:
+            return None
+        return associated_nodes
+
+    def choose_correspond(self,
+                          data_name: str,
+                          data,
+                          callback: callable,
+                          param_map: dict = None,
+                          **kwargs):
+        default_map = {
+            'data': ['good'],
+            'other': ['sound'],
+        }
+        param_map = param_map or default_map
+
+        data_args = {k: kwargs[k] for k in param_map['data'] if k in kwargs}
+        other_args = {k: kwargs[k] for k in param_map['other'] if k in kwargs}
+
+        data_node = self.memory.match_node(data_name, data, **data_args)
+        if np.random.uniform(0, 1) < self.epsilon or np.random.uniform(
+                0,
+                1) > self.beta or not self.memory.select_nodes(**other_args):
+            other = callback()
+            other_node = self.memory.match_node(other.name, other.data,
+                                                **other_args)
+            other = other.data
+        else:
+            other_node = self.memory.max_weight_node(data_node)
+            if not other_node:
+                other_nodes = self.memory.select_nodes(**other_args)
+                other_node = random.choice(other_nodes)
+            other = other_node['data']
+        return other
 
     def choose_sound(self, good: int):
-        # 判断记忆中有没有 good
-        node = self.match_node(good, f"{good}")
-        # 根据探索率来确认返回
-        if np.random.uniform(0, 1) < self.epsilon or np.random.uniform(
-                0, 1) > self.beta:
-            sound = self.add_rand_sound_memory(node)
-        else:
-            sound_node = self.incident_memory(node)
-            if not sound_node:
-                sound_node = random.choice(
-                    self.memory.vs.select(sound_eq=True))
-            sound = sound_node['data']
+        """选择声音"""
+        sound = self.choose_correspond(f"{good}",
+                                       good,
+                                       self.make_rand_sound,
+                                       good=True,
+                                       sound=True)
         return sound
 
     def choose_good(self, sound: sd.Sound):
-        # 判断记忆中有没有 sound
-        node = self.match_node(sound, sound.name, sound=True)
-        # 根据探索率来确认返回
-        if np.random.uniform(0, 1) < self.epsilon:
-            good = self.add_rand_good_memory(node)
-        else:
-            good_node = self.incident_memory(node)
-            if not good_node:
-                good = self.add_rand_good_memory(node)
-            else:
-                good = good_node['data']
+        """选择物体"""
+        good = self.choose_correspond(sound.name,
+                                      sound,
+                                      self.make_rand_good, {
+                                          'data': 'sound',
+                                          'other': 'good'
+                                      },
+                                      good=True,
+                                      sound=True)
         return good
 
     def update_qlearning(self, good: int, sound: sd.Sound, next_good: int,
                          reward: float):
         # 先认识一下 good 和 sound
-        good_node = self.match_node(good, f"{good}")
-        sound_node = self.match_node(sound, sound.name, sound=True)
+        good_node = self.memory.match_node(f"{good}", good, good=True)
+        sound_node = self.memory.match_node(sound.name, sound, sound=True)
 
         # 判断一下两个 node 是否连接
-        edge = self.match_edge(good_node, sound_node)
+        edge = self.memory.match_edge(good_node, sound_node)
         old_value = edge['weight']
 
-        next_good_node = self.match_node(next_good, f"{next_good}")
-        next_max = self.max_edge_weight(next_good_node)
+        next_good_node = self.memory.match_node(f"{next_good}",
+                                                next_good,
+                                                good=True)
+        # 联系下一个物体
+        self.memory.match_edge(next_good_node, sound_node)
+        next_max_weight_edge = self.memory.max_weight_edge(next_good_node)
+        next_max = 0 if not next_max_weight_edge else next_max_weight_edge[
+            'weight']
 
         new_value = (1 - self.alpha) * old_value + self.alpha * (
             reward + self.gamma * next_max)
@@ -154,36 +151,4 @@ class Agent:
 
     def show_memory(self, n: int = 5):
         """展示记忆"""
-        names = [f"{good}" for good in self.env.goods]
-        selected_edges = set()
-
-        for name in names:
-            try:
-                node = self.memory.vs.find(name=name)
-            except:
-                continue
-            connect_edges = self.memory.incident(node)
-            if not connect_edges:
-                continue
-            sorted_edges = sorted(connect_edges,
-                                  key=lambda e: self.memory.es[e]['weight'],
-                                  reverse=True)
-            top_n_edges = sorted_edges[:n]
-            selected_edges.update(top_n_edges)
-        if selected_edges:
-            sub = self.memory.subgraph_edges(selected_edges,
-                                             delete_vertices=False)
-            layout = sub.layout("auto")
-            fig, ax = plt.subplots(figsize=(10, 10))
-            ig.plot(sub,
-                    target=ax,
-                    layout=layout,
-                    vertex_label=sub.vs["name"],
-                    edge_label=[f"{int(w)}" for w in sub.es['weight']],
-                    vertex_color=[
-                        "orange" if v['name'] in names else "lightblue"
-                        for v in sub.vs
-                    ],
-                    edge_color="gray",
-                    vertex_size=50)
-            plt.show()
+        self.memory.plot(n, [f"{good}" for good in self.env.goods])
