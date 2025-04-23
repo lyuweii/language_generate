@@ -1,9 +1,9 @@
 import random
 from matplotlib import pyplot as plt
 import numpy as np
-import sound as sd
+import src.sound as sd
 import igraph as ig
-from memory import Memory
+from src.memory import Memory
 from types import SimpleNamespace
 
 
@@ -33,14 +33,16 @@ class Agent:
         self.tx_range = 100
         self.rx_range = 100
         self.sounds = []
-        self.reward = 50
+        self.reward = 10
         self.vowels = sd.dict_vowels
         self.consonants = sd.dict_consonants
-        self.alpha = 0.1  # 学习率
+        self.alpha = 0.2  # 学习率
         self.gamma = 0.9  # 折扣因子
         self.epsilon = 0.1  # 探索率
-        self.beta = 0.9  # 记忆使用率
+        self.beta = 0.95  # 记忆使用率
         self.memory = Memory()  # 记忆图
+        self.mood = 0  # 情绪
+        self.actions = ["cry", "laugh"]
 
     def receive_sound(self, sound: sd.Sound):
         """接收信号"""
@@ -49,7 +51,7 @@ class Agent:
 
     def send_sound(self, sound: sd.Sound):
         """发送信号"""
-        from environment import Signal
+        from src.environment import Signal
         signal = Signal(self, self.position, self.tx_range, sound)
         self.env.broadcast(signal)
 
@@ -74,7 +76,7 @@ class Agent:
         conneted = False
         if self.memory.data.are_connected(node1, node2):
             # 如果已经连接，则不需要重新连接
-            conneted=True
+            conneted = True
         edge = self.memory.match_edge(node1, node2)
         if conneted:
             # 权重提高
@@ -121,9 +123,9 @@ class Agent:
             other = other_node['data']
         return other
 
-    def choose_sound(self, good: int):
+    def choose_sound(self, data, name, **kwargs):
         """选择声音"""
-        data_node = self.memory.match_node(f"{good}", good, good=True)
+        data_node = self.memory.match_node(name, data, **kwargs)
         if np.random.uniform(0, 1) < self.epsilon or np.random.uniform(
                 0, 1) > self.beta or not self.memory.select_nodes(sound=True):
             other = self.make_rand_sound()
@@ -158,18 +160,17 @@ class Agent:
         return other
 
     def update_qlearning(self, good: int, sound: sd.Sound, next_good: int,
-                         reward: float):
+                         reward: float, **kwargs):
         # 先认识一下 good 和 sound
-        good_node = self.memory.match_node(f"{good}", good, good=True)
+        good_node = self.memory.match_node(f"{good}", good, **kwargs)
         sound_node = self.memory.match_node(sound.name, sound, sound=True)
 
         # 判断一下两个 node 是否连接
         edge = self.memory.match_edge(good_node, sound_node)
         old_value = edge['weight']
 
-        next_good_node = self.memory.match_node(f"{next_good}",
-                                                next_good,
-                                                good=True)
+        next_good_node = self.memory.match_node(f"{next_good}", next_good,
+                                                **kwargs)
         # 联系下一个物体
         self.memory.match_edge(next_good_node, sound_node)
         next_max_weight_edge = self.memory.max_weight_edge(next_good_node)
@@ -184,4 +185,40 @@ class Agent:
 
     def show_memory(self, n: int = 5):
         """展示记忆"""
-        self.memory.plot(n, [f"{good}" for good in self.env.goods])
+        #self.memory.plot(n, [f"{good}" for good in self.env.goods])
+        self.memory.plot(n, [action for action in self.actions])
+
+    def choose_action(self, sound: sd.Sound = None):
+        if sound is None or np.random.uniform(
+                0, 1) < self.epsilon or np.random.uniform(
+                    0, 1) > self.beta or not self.memory.select_nodes(
+                        action=True):
+            other = self.give_action()
+            other_node = self.memory.match_node(other.name,
+                                                other.data,
+                                                action=True)
+            other = other.data
+        else:
+            data_node = self.memory.match_node(sound.name, sound, sound=True)
+            other_node = self.memory.max_weight_node(data_node)
+            if not other_node:
+                other_nodes = self.memory.select_nodes(action=True)
+                other_node = random.choice(other_nodes)
+            other = other_node['data']
+        action = getattr(self, other)
+        action()
+        return other
+
+    def give_action(self):
+        """给出动作"""
+        action = random.choice(self.actions)
+        return SimpleNamespace(name=action, data=action)
+
+    def cry(self):
+        self.mood = -1
+
+    def laugh(self):
+        self.mood = 1
+
+    def reset_mood(self):
+        self.mood = 0

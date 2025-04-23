@@ -1,8 +1,9 @@
 import random
 import numpy as np
-import sound as sd
-from agent import Agent
-import agent as agt
+import src.sound as sd
+from src.agent import Agent
+import src.agent as agt
+from src.task  import *
 from collections import Counter
 
 
@@ -80,7 +81,7 @@ class Environment:
             for agent in self.agents:
                 agent.epsilon = epsilon
             while not done:
-                sound = agent.choose_sound(good)
+                sound = agent.choose_sound(f"{good}", good, good=True)
                 agent.send_sound(sound)
                 # 检查
                 next_good, next_agent, done, average_reward = self.judge(
@@ -106,12 +107,12 @@ class Environment:
 
     def contact_data(self):
         """获取接触数据"""
-        for good, agent in zip(self.goods, self.agents):
+        agent = random.choice(self.agents)
+        for good in self.goods:
             sound = agent.make_rand_sound().data
             for rv in self.agents:
-                if rv is not agent:
-                    rv.associate(rv.wrap_data(good,f"{good}", good=True),
-                                 rv.wrap_data(sound, sound.name, sound=True))
+                rv.associate(rv.wrap_data(good, f"{good}", good=True),
+                             rv.wrap_data(sound, sound.name, sound=True))
 
     def judge(self, agent: Agent, good: int, sound: sd.Sound, step: int):
         flag = False
@@ -126,7 +127,7 @@ class Environment:
         max_count_good = counter.most_common(1)[0][0]
         max_count = counter.most_common(1)[0][1]
 
-        reward = np.clip(5 - step, -15, 10)
+        reward = np.clip(len(filtered_agents)/2 - step, -5, 5)
         reward += max_count - len(goods) / 2.
 
         next_good = max_count_good
@@ -148,14 +149,15 @@ class Environment:
 
     def run(self):
         """运行环境"""
-        for i in range(20):
+        for i in range(30):
             self.add_agent(Agent(self, i, f"H-{i}"))
 
-        self.train(2000)
+        # self.train(100)
+        train_action(self, 100)
 
         # 展示网络
         agent = random.choice(self.agents)
         print(f"Agent {agent.name} memory:")
-        agent.show_memory()
+        agent.show_memory(5)
 
         #self.agents[0].send_sound(sd.monster_roar)
