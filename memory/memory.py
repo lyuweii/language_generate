@@ -24,7 +24,7 @@ class Memory:
             edge = self.data.add_edge(node1, node2, weight=np.random.rand())
         else:
             edge = self.data.es[self.data.get_eid(node1, node2)]
-        return edge, flag
+        return edge
 
     def are_adjacent(self, node1: ig.Vertex, node2: ig.Vertex):
         """判断两个节点是否相邻"""
@@ -42,13 +42,13 @@ class Memory:
         """获取节点的所有邻接节点"""
         return node.neighbors()
 
-    def incident_edges(self, node: ig.Vertex,**kwargs):
+    def incident_edges(self, node: ig.Vertex):
         """获取节点的所有邻接边"""
-        return self.data.incident(node, **kwargs)
+        return self.data.incident(node)
 
-    def sort_weight_edges(self, node: ig.Vertex, num: int = 1, **kwargs):
+    def sort_weight_edges(self, node: ig.Vertex, num: int = 1):
         """获取权重排序的前 num 条边"""
-        edges = self.data.incident(node, **kwargs)
+        edges = self.data.incident(node)
         if not edges:
             return None
         sorted_edges = sorted(edges,
@@ -57,9 +57,9 @@ class Memory:
         result = [self.data.es[e] for e in sorted_edges[:num]]
         return result
 
-    def max_weight_edge(self, node: ig.Vertex, **kwargs):
+    def max_weight_edge(self, node: ig.Vertex):
         """获取节点邻接边的最大权重对应的边"""
-        max_edges = self.sort_weight_edges(node, 1, **kwargs)
+        max_edges = self.sort_weight_edges(node, 1)
         if not max_edges:
             return None
         return max_edges[0]

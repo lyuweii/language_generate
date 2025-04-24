@@ -28,15 +28,17 @@ class BaseMemory:
                    node1: ig.Vertex,
                    node2: ig.Vertex,
                    weight: float = None):
-        """匹配边，如果没有则直接添加，权重为 0-1 间的均匀分布随机数。"""
-        if not self.data.are_adjacent(node1, node2):
+        """匹配边，如果没有则直接添加，权重为 0-1 间的均匀分布随机数，
+        同时返回之前是否连接。"""
+        flag = self.data.are_connected(node1, node2)
+        if not flag:
             edge = self.data.add_edge(
                 node1,
                 node2,
                 weight=np.random.rand() if weight is None else weight)
         else:
             edge = self.data.es[self.data.get_eid(node1, node2)]
-        return edge
+        return edge,flag
 
     def select_nodes(self, **kwargs):
         """选择节点，若不符合条件，返回 None。"""
