@@ -1,4 +1,4 @@
-from src.environment import Environment
+from env.environment import Environment
 
 def main():
     env = Environment()

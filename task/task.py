@@ -1,7 +1,7 @@
-import src.agent as agt
+import agent._agent as agt
 import src.sound as sd
 import numpy as np
-import src.environment as env
+import env.environment as env
 import random
 
 

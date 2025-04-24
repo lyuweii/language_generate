@@ -3,7 +3,7 @@ from matplotlib import pyplot as plt
 import numpy as np
 import src.sound as sd
 import igraph as ig
-from src.memory import Memory
+from memory.memory import Memory
 from types import SimpleNamespace
 
 
@@ -51,7 +51,7 @@ class Agent:
 
     def send_sound(self, sound: sd.Sound):
         """发送信号"""
-        from src.environment import Signal
+        from env.environment import Signal
         signal = Signal(self, self.position, self.tx_range, sound)
         self.env.broadcast(signal)
 

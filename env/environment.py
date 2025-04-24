@@ -1,9 +1,9 @@
 import random
 import numpy as np
 import src.sound as sd
-from src.agent import Agent
-import src.agent as agt
-from src.task  import *
+from agent._agent import Agent
+import agent._agent as agt
+from task.task  import *
 from collections import Counter
 
 
