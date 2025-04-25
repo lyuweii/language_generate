@@ -1,3 +1,4 @@
+import os
 import numpy as np
 from memory.base import BaseMemory
 
@@ -75,3 +76,18 @@ class BaseAgent:
 
     def show_memory(self, num: int, names=None):
         self.memory.plot(num, names=names)
+
+    def save_memory(self):
+        dir_path = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
+        file_path = os.path.join(dir_path, "/result/", f"{self.name}.net")
+        self.memory.save(file_path)
+
+    def load_memory(self):
+        dir_path = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
+        file_path = os.path.join(dir_path, "/result/", f"{self.name}.net")
+        if os.path.exists(file_path):
+            self.memory.load(file_path)
+        else:
+            raise FileNotFoundError(f"Memory file {file_path} not found.")
+        
+
