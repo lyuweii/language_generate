@@ -163,3 +163,10 @@ class BaseMemory:
                     edge_color=edge_colors,
                     vertex_size=50)
             plt.show()
+
+    def save(self, path: str):
+        """保存图形"""
+        self.data.save(path)
+
+    def load(self,path:str):
+        self.data.Load(path)
