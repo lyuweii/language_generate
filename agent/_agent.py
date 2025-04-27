@@ -1,7 +1,7 @@
 import random
 from matplotlib import pyplot as plt
 import numpy as np
-import src.sound as sd
+import combination.sound as sd
 import igraph as ig
 from memory.memory import Memory
 from types import SimpleNamespace

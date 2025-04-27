@@ -1,6 +1,6 @@
 import random
 import numpy as np
-import src.sound as sd
+import combination.sound as sd
 from agent._agent import Agent
 import agent._agent as agt
 from task.task  import *

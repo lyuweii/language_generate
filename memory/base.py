@@ -38,7 +38,15 @@ class BaseMemory:
                 weight=np.random.rand() if weight is None else weight)
         else:
             edge = self.data.es[self.data.get_eid(node1, node2)]
-        return edge,flag
+        return edge, flag
+
+    def are_adjacent(self, node1: ig.Vertex, node2: ig.Vertex):
+        """判断两个节点是否相邻"""
+        return self.data.are_adjacent(node1, node2)
+
+    def which_adjacent(self, center_node, *nodes):
+        """判断节点与其他节点是否相邻，可能返回 None。"""
+        return [n for n in nodes if self.data.are_adjacent(center_node, n)]
 
     def select_nodes(self, **kwargs):
         """选择节点，若不符合条件，返回 None。"""
@@ -168,5 +176,5 @@ class BaseMemory:
         """保存图形"""
         self.data.save(path)
 
-    def load(self,path:str):
+    def load(self, path: str):
         self.data.Load(path)
