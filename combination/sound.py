@@ -74,6 +74,46 @@ class Tone(enum.Enum):
     FOURTH = 4
 
 
+class YunMu:
+    """韵母类
+
+    属性：
+        - name: 韵母名称
+        - duration: 持续时间(世界时间单位)
+        - strength: 强度 1-10
+        - difficulty: 发音难度 1-10
+        - clarity: 清晰度 1-10"""
+
+    def __init__(self, strength: float = 1.0, *args:list[Phoneme]):
+        # 排序 args，将元音放在最前面
+        sorted_args = sorted(args, key=lambda x: x.is_vowel)
+        self.name = "".join([phoneme.name for phoneme in sorted_args])
+        self.is_yunmu = True
+        self.strength = (np.sum([phoneme.strength for phoneme in sorted_args])) * strength
+        self.duration = (np.sum([phoneme.duration
+                                 for phoneme in sorted_args])) * strength
+        self.difficulty = np.sum([phoneme.difficulty for phoneme in sorted_args])
+
+class ShengMu:
+    """声母类
+
+    属性：
+        - name: 声母名称
+        - duration: 持续时间(世界时间单位)
+        - strength: 强度 1-10
+        - difficulty: 发音难度 1-10
+        - clarity: 清晰度 1-10"""
+
+    def __init__(self, strength: float = 1.0, *args:list[Consonant]):
+        # 排序 args，将辅音放在最前面，最多两个辅音
+        sorted_args = sorted(args, key=lambda x: x.is_consonant)[:2]
+        self.name = "".join([phoneme.name for phoneme in sorted_args])
+        self.is_shengmu = True
+        self.strength = (np.sum([phoneme.strength for phoneme in sorted_args])) * strength
+        self.duration = (np.sum([phoneme.duration
+                                 for phoneme in sorted_args])) * strength
+        self.difficulty = np.sum([phoneme.difficulty for phoneme in sorted_args])
+
 class Sound:
     """音节类
 
