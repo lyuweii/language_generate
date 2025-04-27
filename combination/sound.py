@@ -84,15 +84,18 @@ class YunMu:
         - difficulty: 发音难度 1-10
         - clarity: 清晰度 1-10"""
 
-    def __init__(self, strength: float = 1.0, *args:list[Phoneme]):
+    def __init__(self, strength: float = 1.0, *args: list[Phoneme]):
         # 排序 args，将元音放在最前面
         sorted_args = sorted(args, key=lambda x: x.is_vowel)
         self.name = "".join([phoneme.name for phoneme in sorted_args])
         self.is_yunmu = True
-        self.strength = (np.sum([phoneme.strength for phoneme in sorted_args])) * strength
+        self.strength = (np.sum([phoneme.strength
+                                 for phoneme in sorted_args])) * strength
         self.duration = (np.sum([phoneme.duration
                                  for phoneme in sorted_args])) * strength
-        self.difficulty = np.sum([phoneme.difficulty for phoneme in sorted_args])
+        self.difficulty = np.sum(
+            [phoneme.difficulty for phoneme in sorted_args])
+
 
 class ShengMu:
     """声母类
@@ -104,15 +107,47 @@ class ShengMu:
         - difficulty: 发音难度 1-10
         - clarity: 清晰度 1-10"""
 
-    def __init__(self, strength: float = 1.0, *args:list[Consonant]):
+    def __init__(self, strength: float = 1.0, *args: list[Consonant]):
         # 排序 args，将辅音放在最前面，最多两个辅音
         sorted_args = sorted(args, key=lambda x: x.is_consonant)[:2]
         self.name = "".join([phoneme.name for phoneme in sorted_args])
         self.is_shengmu = True
-        self.strength = (np.sum([phoneme.strength for phoneme in sorted_args])) * strength
+        self.strength = (np.sum([phoneme.strength
+                                 for phoneme in sorted_args])) * strength
         self.duration = (np.sum([phoneme.duration
                                  for phoneme in sorted_args])) * strength
-        self.difficulty = np.sum([phoneme.difficulty for phoneme in sorted_args])
+        self.difficulty = np.sum(
+            [phoneme.difficulty for phoneme in sorted_args])
+
+
+class Syllable:
+    """音节类
+
+    属性：
+        - name: 音节名称
+        - duration: 持续时间(世界时间单位)
+        - strength: 强度 1-10
+        - difficulty: 发音难度 1-10
+        - clarity: 清晰度 1-10"""
+
+    def __init__(
+        self,
+        yunmu: YunMu,
+        shengmu: ShengMu = None,
+        strength: float = 1.0,
+    ):
+        """初始化音节类"""
+        self.name = shengmu.name + yunmu.name if shengmu and yunmu else ""
+        self.is_syllable = True
+        self.shengmu = shengmu
+        self.yunmu = yunmu
+        self.strength = (shengmu.strength +
+                         yunmu.strength) * strength if shengmu and yunmu else 0
+        self.duration = (shengmu.duration +
+                         yunmu.duration) * strength if shengmu and yunmu else 0
+        self.difficulty = (shengmu.difficulty +
+                           yunmu.difficulty) if shengmu and yunmu else 0
+
 
 class Sound:
     """音节类
