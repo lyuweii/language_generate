@@ -1,4 +1,5 @@
 import enum
+import random
 import numpy as np
 
 
@@ -41,6 +42,7 @@ class Vowel(Phoneme):
         """初始化元音类"""
         super().__init__(name, duration, strength, difficulty, clarity)
         self.is_vowel = True  # 是否为元音
+        self.is_consonant = False
 
 
 class Consonant(Phoneme):
@@ -58,6 +60,7 @@ class Consonant(Phoneme):
         """初始化辅音类"""
         super().__init__(name, duration, strength, difficulty, clarity)
         self.is_consonant = True  # 是否为辅音
+        self.is_vowel = False
 
 
 class Tone(enum.Enum):
@@ -86,7 +89,7 @@ class YunMu:
 
     def __init__(self, strength: float = 1.0, *args: list[Phoneme]):
         # 排序 args，将元音放在最前面
-        sorted_args = sorted(args, key=lambda x: x.is_vowel)
+        sorted_args = sorted(args, key=lambda x: x.is_vowel, reverse=True)
         self.name = "".join([phoneme.name for phoneme in sorted_args])
         self.is_yunmu = True
         self.strength = (np.sum([phoneme.strength
@@ -95,6 +98,22 @@ class YunMu:
                                  for phoneme in sorted_args])) * strength
         self.difficulty = np.sum(
             [phoneme.difficulty for phoneme in sorted_args])
+
+    def __repr__(self):
+        return f"{self.name}"
+
+    @staticmethod
+    def random_yunmu():
+        """随机生成一个韵母"""
+        v_length = np.random.randint(1, 3)
+        c_length = np.random.randint(0, 1 if v_length >= 2 else 3)
+        vowels = [
+            dict_vowels[random.choice("aeiouü")] for i in range(v_length)
+        ]
+        consonants = [
+            dict_consonants[random.choice("bpmfd")] for i in range(c_length)
+        ]
+        return YunMu(1.0, *vowels, *consonants)
 
 
 class ShengMu:
@@ -118,6 +137,18 @@ class ShengMu:
                                  for phoneme in sorted_args])) * strength
         self.difficulty = np.sum(
             [phoneme.difficulty for phoneme in sorted_args])
+
+    def __repr__(self):
+        return f"{self.name}"
+
+    @staticmethod
+    def random_shengmu():
+        """随机生成一个声母"""
+        c_length = np.random.randint(1, 2)
+        consonants = [
+            dict_consonants[random.choice("bpmfd")] for i in range(c_length)
+        ]
+        return ShengMu(1.0, *consonants)
 
 
 class Syllable:
@@ -147,6 +178,30 @@ class Syllable:
                          yunmu.duration) * strength if shengmu and yunmu else 0
         self.difficulty = (shengmu.difficulty +
                            yunmu.difficulty) if shengmu and yunmu else 0
+
+    def __repr__(self):
+        return f"{self.name}"
+
+    @staticmethod
+    def random_syllable():
+        """随机生成一个音节"""
+        yunmu = YunMu.random_yunmu()
+        shengmu = ShengMu.random_shengmu() if random.random() > 0.5 else None
+        return Syllable(yunmu, shengmu, 1.0)
+
+
+class Word:
+
+    def __init__(self, verb=False, *args: list[Syllable]):
+        self.name = "".join([syllable.name for syllable in args])
+        self.is_word = True
+        self.is_verb = verb
+        self.duration = np.sum([syllable.duration for syllable in args])
+        self.strength = np.sum([syllable.strength for syllable in args])
+        self.difficulty = np.sum([syllable.difficulty for syllable in args])
+
+    def __repr__(self):
+        return f"{self.name}"
 
 
 class Sound:

@@ -1,7 +1,7 @@
 import numpy as np
 import combination.sound as sd
 from base import BaseAgent
-from combination.construct import Constructor
+from combination.constructor import Constructor
 
 
 class Agent(BaseAgent):

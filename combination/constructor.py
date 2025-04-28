@@ -1,7 +1,7 @@
 import random
 import combination.combination as cc
 from memory.base import BaseMemory
-from sound import Sound
+from sound import Word, Syllable, YunMu, ShengMu
 from sound import dict_vowels, dict_consonants
 
 
@@ -18,7 +18,7 @@ class Constructor:
         self.v_node = self.data.match_node("_verb_")
         # 其他相关的计为 object
         self.o_node = self.data.match_node("_object_")
-        
+
         # 构造 vowels 和 consonants
         self.vowels = dict_vowels
         self.consonants = dict_consonants
@@ -27,13 +27,11 @@ class Constructor:
         """
         生成一个随机的单词
         """
-        constant = self.consonants[random.choice("bpmfd")]
-        vowel = self.vowels[random.choice("aeiouü")]
-        return Sound([constant, vowel])
+        pass
 
     def __call__(self, *args):
         """
-        构造句子，传入为 data,返回一个 combination 对象
+        构造句子，传入的一定是 word,返回一个 combination 对象
         """
         for arg in args:
             # 查找节点
